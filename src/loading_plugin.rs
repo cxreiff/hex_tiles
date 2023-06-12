@@ -1,12 +1,13 @@
 use bevy::prelude::*;
+use bevy::gltf::Gltf;
 use bevy_asset_loader::prelude::*;
 
 use crate::GameState;
 
 #[derive(AssetCollection, Resource)]
 pub struct LoadedAssets {
-    #[asset(key = "textures.kitty")]
-    pub kitty: Handle<Image>,
+    #[asset(key = "meshes.hexagon")]
+    pub hexagon: Handle<Gltf>,
 }
 
 pub struct LoadingPlugin;
