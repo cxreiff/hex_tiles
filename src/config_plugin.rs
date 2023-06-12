@@ -34,7 +34,7 @@ impl Plugin for ConfigPlugin {
                 DefaultPlugins
                     .set(WindowPlugin {
                         primary_window: Some(Window {
-                            title: "bevy_trunk_template".to_string(),
+                            title: "hex_tiles".to_string(),
                             canvas: Some("#bevy".to_owned()),
                             fit_canvas_to_parent: true,
                             present_mode: PresentMode::AutoVsync,
@@ -97,16 +97,3 @@ fn debug_toggle_system(input: Res<Input<KeyCode>>, mut debug_options: ResMut<Deb
     }
 }
 
-pub fn get_world_position(
-    raw_position: Vec2,
-    window: &Window,
-    camera_transform: &GlobalTransform,
-) -> Vec3 {
-    let adjusted_position = Vec3::new(
-        raw_position.x / window.width() * WIDTH - WIDTH / 2.,
-        raw_position.y / window.height() * HEIGHT - HEIGHT / 2.,
-        0.,
-    );
-
-    *camera_transform * adjusted_position
-}
