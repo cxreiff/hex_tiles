@@ -24,8 +24,8 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(world_setup.in_schedule(OnEnter(GameState::Playing)))
             .add_system(world_update.in_set(OnUpdate(GameState::Playing)))
-            .add_event::<HexDragged>()
-            .add_system(handle_hex_dragged.run_if(on_event::<HexDragged>()));
+            .add_event::<HexEvent>()
+            .add_system(handle_hex_event.run_if(on_event::<HexEvent>()));
     }
 }
 
@@ -68,7 +68,11 @@ fn world_setup(
                     ..default()
                 },
                 RaycastPickTarget::default(),
-                OnPointer::<Drag>::send_event::<HexDragged>(),
+                OnPointer::<Over>::send_event::<HexEvent>(),
+                OnPointer::<Out>::send_event::<HexEvent>(),
+                OnPointer::<Down>::send_event::<HexEvent>(),
+                OnPointer::<Up>::send_event::<HexEvent>(),
+                OnPointer::<Drag>::send_event::<HexEvent>(),
             ));
         }
     }
@@ -99,30 +103,82 @@ fn compute_mesh(mesh_info: MeshInfo) -> Mesh {
     mesh
 }
 
-#[derive(Deref)]
-struct HexDragged(ListenedEvent<Drag>);
-impl From<ListenedEvent<Drag>> for HexDragged {
+enum HexEvent {
+    Drag(ListenedEvent<Drag>),
+    Over(ListenedEvent<Over>),
+    Out(ListenedEvent<Out>),
+    Down(ListenedEvent<Down>),
+    Up(ListenedEvent<Up>),
+}
+
+impl From<ListenedEvent<Drag>> for HexEvent {
     fn from(event: ListenedEvent<Drag>) -> Self {
-        HexDragged(event)
+        HexEvent::Drag(event)
+    }
+}
+impl From<ListenedEvent<Over>> for HexEvent {
+    fn from(event: ListenedEvent<Over>) -> Self {
+        HexEvent::Over(event)
+    }
+}
+impl From<ListenedEvent<Out>> for HexEvent {
+    fn from(event: ListenedEvent<Out>) -> Self {
+        HexEvent::Out(event)
+    }
+}
+impl From<ListenedEvent<Down>> for HexEvent {
+    fn from(event: ListenedEvent<Down>) -> Self {
+        HexEvent::Down(event)
+    }
+}
+impl From<ListenedEvent<Up>> for HexEvent {
+    fn from(event: ListenedEvent<Up>) -> Self {
+        HexEvent::Up(event)
     }
 }
 
-fn handle_hex_dragged(
-    mut events: EventReader<HexDragged>,
+fn handle_hex_event(
+    mut events: EventReader<HexEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut transforms: Query<&mut Transform>,
     material_handles: Query<&Handle<StandardMaterial>>,
 ) {
     for event in events.iter() {
-        let mut transform = transforms.get_mut(event.target).unwrap();
-        transform.scale.y = (transform.scale.y + event.delta.y / 100.).clamp(0.01, 7.0);
-        let material = materials
-            .get_mut(material_handles.get(event.target).unwrap())
-            .unwrap();
-        let mut color = material.base_color.as_hsla_f32();
-        let to_u8 = 255.0 / 360.0;
-        color[0] =
-            ((color[0] * to_u8) as u8).wrapping_add_signed(event.delta.x as i8) as f32 / to_u8;
-        material.base_color = Color::hsla(color[0], color[1], color[2], color[3]);
+        match event {
+            HexEvent::Drag(event) => {
+                let mut transform = transforms.get_mut(event.target).unwrap();
+                transform.scale.y = (transform.scale.y + event.delta.y / 100.).clamp(0.01, 3.0);
+                let material = materials
+                    .get_mut(material_handles.get(event.target).unwrap())
+                    .unwrap();
+                let mut color = material.base_color.as_hsla_f32();
+                let to_u8 = 255.0 / 360.0;
+                color[0] =
+                    ((color[0] * to_u8) as u8).wrapping_add_signed(event.delta.x as i8) as f32 / to_u8;
+                material.base_color = Color::hsla(color[0], color[1], color[2], color[3]);
+            },
+            HexEvent::Over(event) => {
+                let material = materials.get_mut(material_handles.get(event.target).unwrap()).unwrap();
+                set_material_lightness(material, 0.75);
+            },
+            HexEvent::Out(event) => {
+                let material = materials.get_mut(material_handles.get(event.target).unwrap()).unwrap();
+                set_material_lightness(material, 0.5);
+            },
+            HexEvent::Down(event) => {
+                let material = materials.get_mut(material_handles.get(event.target).unwrap()).unwrap();
+                set_material_lightness(material, 0.5);
+            },
+            HexEvent::Up(event) => {
+                let material = materials.get_mut(material_handles.get(event.target).unwrap()).unwrap();
+                set_material_lightness(material, 0.75);
+            },
+        }
     }
+}
+
+fn set_material_lightness(material: &mut StandardMaterial, lightness: f32) {
+    let mut color = material.base_color.as_hsla_f32();
+    color[2] = lightness;
+    material.base_color = Color::hsla(color[0], color[1], color[2], color[3]);
 }
