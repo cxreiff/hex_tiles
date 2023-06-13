@@ -1,6 +1,4 @@
-use bevy::prelude::*;
-
-use crate::world_plugin::HEX_X;
+use bevy::{prelude::*, render::camera::ScalingMode};
 
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
@@ -11,10 +9,11 @@ impl Plugin for CameraPlugin {
 
 fn camera_setup(mut commands: Commands) {
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(HEX_X * 2.5, 10.0, 15.0)
-            .looking_at(Vec3::new(HEX_X * 2.5, -0.5, 2.0), Vec3::Y),
+        transform: Transform::from_xyz(0.0, 10.0, 15.0)
+            .looking_at(Vec3::new(0.0, 1.2, 0.0), Vec3::Y),
         projection: Projection::Orthographic(OrthographicProjection {
-            scale: 0.01,
+            scale: 4.,
+            scaling_mode: ScalingMode::FixedVertical(2.),
             ..default()
         }),
         ..default()

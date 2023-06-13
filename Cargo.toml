@@ -24,8 +24,6 @@ bevy = { version = "0.10", default-features = false, features = [
   "bevy_asset",
   "bevy_winit",
   "bevy_render",
-  "bevy_gltf",
-  "bevy_scene",
   "png",
   "x11",
 ] }
@@ -37,6 +35,7 @@ bevy-debug-text-overlay = "5.1"
 winit = { version = "0.28", default-features = false }
 image = { version = "0.24", default-features = false }
 bevy_mod_picking = "0.13.0"
+hexx = "0.6.0"
 
 [build-dependencies]
 embed-resource = "1.4"

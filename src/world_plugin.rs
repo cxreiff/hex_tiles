@@ -1,12 +1,13 @@
-use bevy::prelude::*;
-use bevy::gltf::{Gltf, GltfMesh};
+use std::f32::consts::PI;
 
-use crate::loading_plugin::LoadedAssets;
+use bevy::prelude::*;
+use bevy::render::mesh::Indices;
+use bevy::render::render_resource::PrimitiveTopology;
+use hexx::*;
+
 use crate::GameState;
 
-pub static HEX_X: f32 = 1.78;
-pub static HEX_Y: f32 = 0.5;
-pub static HEX_Z: f32 = HEX_X * 1.18;
+pub static MARGIN: f32 = 0.05;
 
 #[derive(Component)]
 struct Hexagon;
@@ -27,10 +28,8 @@ impl Plugin for WorldPlugin {
 
 fn world_setup(
     mut commands: Commands,
-    assets: Res<LoadedAssets>,
-    assets_gltf: Res<Assets<Gltf>>,
-    assets_meshes: Res<Assets<GltfMesh>>,
-    mut assets_materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     #[rustfmt::skip]
     let initial_tiles = vec![
@@ -41,46 +40,54 @@ fn world_setup(
         vec![ 0, 0, 1, 1, 0, 0 ],
     ];
 
-    commands.insert_resource(WorldTracker { _tiles: initial_tiles.clone() });
+    commands.insert_resource(WorldTracker {
+        _tiles: initial_tiles.clone(),
+    });
     commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(0.0, 10.0, 5.0),
-        point_light: PointLight { intensity: 3000.0, shadows_enabled: true, ..default() },
+        transform: Transform::from_xyz(-5.0, 12.0, 5.0),
+        point_light: PointLight {
+            intensity: 3000.0,
+            shadows_enabled: true,
+            ..default()
+        },
         ..default()
     });
 
-    if let Some(hexagon) = assets_gltf.get(&assets.hexagon) {
-        if let Some(hexagon) = assets_meshes.get(&hexagon.named_meshes["hexagon"]) {
-            let hexagon = &hexagon.primitives[0].mesh;
-            for (i, tile_row) in initial_tiles.iter().enumerate() {
-                for (j, tile) in tile_row.iter().enumerate() {
-                    commands.spawn((
-                        PbrBundle {
-                            transform: hex_grid_transform(i, j, tile),
-                            mesh: hexagon.clone(),
-                            material: assets_materials.add(Color::rgb(0.3, 0.5, 0.4).into()),
-                            ..default()
-                        },
-                    ));
-                }
-            }
-        };
+    let layout = HexLayout::default();
+    for (i, tile_row) in initial_tiles.iter().enumerate() {
+        for (j, tile) in tile_row.iter().enumerate() {
+            let mesh = ColumnMeshBuilder::new(&layout, 1.0).build();
+            commands.spawn((PbrBundle {
+                transform: hex_grid_transform(i, j, tile),
+                mesh: meshes.add(compute_mesh(mesh)),
+                material: materials.add(Color::CYAN.into()),
+                ..default()
+            },));
+        }
     }
 }
 
-fn world_update(
-    time: Res<Time>,
-    mut hexagons: Query<&mut Transform, With<Hexagon>>,
-) {
+fn world_update(time: Res<Time>, mut hexagons: Query<&mut Transform, With<Hexagon>>) {
     for mut hexagon in hexagons.iter_mut() {
         hexagon.rotate_around(Vec3::ZERO, Quat::from_rotation_y(time.delta_seconds() / 2.))
     }
 }
 
 fn hex_grid_transform(i: usize, j: usize, height: &u32) -> Transform {
-    let x = j as f32 * HEX_X + (i as f32 % 2.) * (HEX_X / 2.);
-    let y = *height as f32 * HEX_Y / 2.0;
-    let z = i as f32 * HEX_Z * 0.75;
-    let scale = Vec3::new(1.0, *height as f32 * 0.25, 1.0);
-    Transform::from_xyz(x, y, z).with_scale(scale)
+    let x = (j as f32 + (i as f32 % 2. / 2.)) * (3_f32.sqrt() + MARGIN) - (3_f32.sqrt() * 5. / 2.);
+    let y = 0.0;
+    let z = i as f32 * (1.5 + MARGIN) - (1.5 * 5. / 2.);
+    let scale = Vec3::new(1.0, *height as f32, 1.0);
+    Transform::from_xyz(x, y, z)
+        .with_scale(scale)
+        .with_rotation(Quat::from_rotation_y(PI / 2.))
 }
 
+fn compute_mesh(mesh_info: MeshInfo) -> Mesh {
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_info.vertices);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_info.normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, mesh_info.uvs);
+    mesh.set_indices(Some(Indices::U16(mesh_info.indices)));
+    mesh
+}

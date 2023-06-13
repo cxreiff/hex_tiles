@@ -96,4 +96,3 @@ fn debug_toggle_system(input: Res<Input<KeyCode>>, mut debug_options: ResMut<Deb
         debug_options.printed_info_enabled = !debug_options.printed_info_enabled;
     }
 }
-
