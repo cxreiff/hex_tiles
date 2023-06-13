@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
+use bevy_mod_picking::DefaultPickingPlugins;
 
 #[cfg(debug_assertions)]
 use {
@@ -48,7 +49,8 @@ impl Plugin for ConfigPlugin {
                         ..default()
                     })
                     .set(ImagePlugin::default_nearest()),
-            );
+            )
+            .add_plugins(DefaultPickingPlugins);
 
         #[cfg(debug_assertions)]
         {
