@@ -1,5 +1,5 @@
 ({
-    "meshes.hexagon": File (
-        path: "meshes/hexagon.gltf"
+    "textures.kitty": File (
+        path: "textures/kitty.png",
     ),
 })
