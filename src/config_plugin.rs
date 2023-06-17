@@ -30,7 +30,7 @@ pub struct ConfigPlugin;
 impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Msaa::Sample4)
-            .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
+            .insert_resource(ClearColor(Color::rgb(0.93, 0.86, 0.86)))
             .add_plugins(
                 DefaultPlugins
                     .set(WindowPlugin {

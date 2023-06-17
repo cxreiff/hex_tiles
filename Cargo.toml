@@ -35,9 +35,13 @@ bevy-debug-text-overlay = "5.1"
 winit = { version = "0.28", default-features = false }
 image = { version = "0.24", default-features = false }
 bevy_mod_picking = { version = "0.13", default-features = false, features = [
-  "backend_raycast"
+  "backend_raycast",
+  "highlight",
 ] }
 hexx = "0.6.0"
+derive_more = { version = "0.99.17", default-features = false, features = [
+  "constructor",
+] }
 
 [build-dependencies]
 embed-resource = "1.4"
