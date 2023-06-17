@@ -395,6 +395,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_kira_audio",
  "bevy_mod_picking",
+ "derive_more",
  "embed-resource",
  "hexx",
  "image",
@@ -734,6 +735,7 @@ checksum = "88f94e18ae111035e9bfd4793d1af9e090d35b0fd1048da2d9e32205a1a5104c"
 dependencies = [
  "bevy",
  "bevy_picking_core",
+ "bevy_picking_highlight",
  "bevy_picking_input",
  "bevy_picking_raycast",
 ]
@@ -776,6 +778,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce51af210395ad182b5ddc27375b660d68f105a9e279a887446d593b85299be2"
 dependencies = [
  "bevy",
+]
+
+[[package]]
+name = "bevy_picking_highlight"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58d3662d8ac1b05897dc29188b88068cd58a2f1623a496a32e903a9ea3df4f46"
+dependencies = [
+ "bevy",
+ "bevy_picking_core",
+ "bevy_picking_input",
 ]
 
 [[package]]
@@ -1430,6 +1443,17 @@ dependencies = [
  "bitflags",
  "libloading",
  "winapi",
+]
+
+[[package]]
+name = "derive_more"
+version = "0.99.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.107",
 ]
 
 [[package]]
