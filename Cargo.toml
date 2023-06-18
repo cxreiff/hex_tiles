@@ -38,7 +38,7 @@ bevy_mod_picking = { version = "0.13", default-features = false, features = [
   "backend_raycast",
   "highlight",
 ] }
-hexx = "0.6.0"
+hexx = "0.7.0"
 derive_more = { version = "0.99.17", default-features = false, features = [
   "constructor",
 ] }
