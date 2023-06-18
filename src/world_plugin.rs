@@ -47,7 +47,7 @@ fn world_setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let layout = HexLayout {
-        orientation: HexOrientation::pointy(),
+        orientation: HexOrientation::Pointy,
         ..default()
     };
 
