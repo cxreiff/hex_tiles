@@ -4,6 +4,8 @@ use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 use bevy_mod_picking::prelude::*;
 
+static MAX_ANGLE: f32 = PI * 0.5 * 0.99;
+static MIN_ANGLE: f32 = 0.05;
 static FOCUS: Vec3 = Vec3::new(0.0, 0.8, 0.0);
 
 pub struct CameraPlugin;
@@ -59,7 +61,7 @@ fn camera_control(
     if keys.pressed(KeyCode::Up) {
         let camera_direction = (camera_transform.translation - FOCUS).normalize();
         let theta = camera_direction.y.asin();
-        if theta < PI * 0.4 {
+        if theta < MAX_ANGLE {
             let rotation_axis_x = -camera_direction.z;
             let rotation_axis_z = camera_direction.x;
             camera_transform.rotate_around(
@@ -74,7 +76,7 @@ fn camera_control(
     if keys.pressed(KeyCode::Down) {
         let camera_direction = (camera_transform.translation - FOCUS).normalize();
         let theta = camera_direction.y.asin();
-        if theta > 0.0 {
+        if theta > MIN_ANGLE {
             let rotation_axis_x = -camera_direction.z;
             let rotation_axis_z = camera_direction.x;
             camera_transform.rotate_around(

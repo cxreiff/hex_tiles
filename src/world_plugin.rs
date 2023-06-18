@@ -10,7 +10,7 @@ use hexx::*;
 use crate::GameState;
 
 pub static MAP_RADIUS: u32 = 4;
-pub static MARGIN: f32 = 0.06;
+pub static MARGIN: f32 = 0.05;
 
 #[derive(Clone, Constructor)]
 struct HexCoords {
@@ -28,7 +28,6 @@ struct WorldTracker {
     mesh_handle: Handle<Mesh>,
     tile_material_handle: Handle<StandardMaterial>,
     hidden_material_handle: Handle<StandardMaterial>,
-    selector_material_handle: Handle<StandardMaterial>,
 }
 
 pub struct WorldPlugin;
@@ -37,7 +36,11 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(world_setup.in_schedule(OnEnter(GameState::Playing)))
             .add_event::<HexEvent>()
-            .add_system(handle_hex_event.run_if(on_event::<HexEvent>()));
+            .add_systems(
+                (handle_hex_event_update_parent, handle_hex_event_spawn_tile)
+                    .chain()
+                    .distributive_run_if(on_event::<HexEvent>()),
+            );
     }
 }
 
@@ -53,9 +56,9 @@ fn world_setup(
 
     let mesh_handle = meshes.add(compute_mesh(ColumnMeshBuilder::new(&layout, 0.5).build()));
     let tile_material_handle = materials.add(Color::rgb(0.66, 0.53, 0.66).into());
+    let empty_tile_material_handle = materials.add(Color::GRAY.with_a(0.5).into());
     let hidden_material_handle = materials.add(Color::RED.with_a(0.0).into());
     let selector_material_handle = materials.add(Color::rgb(0.66, 0.53, 0.66).with_a(0.3).into());
-    let empty_tile_material_handle = materials.add(Color::GRAY.with_a(0.5).into());
 
     let tiles =
         shapes::hexagon(Hex::ZERO, MAP_RADIUS)
@@ -81,6 +84,12 @@ fn world_setup(
                         OnPointer::<Over>::send_event::<HexEvent>(),
                         OnPointer::<Out>::send_event::<HexEvent>(),
                         OnPointer::<Down>::send_event::<HexEvent>(),
+                        OnPointer::<Up>::send_event::<HexEvent>(),
+                        PickHighlight,
+                        Highlight {
+                            hovered: Some(HighlightKind::Fixed(selector_material_handle.clone())),
+                            pressed: Some(HighlightKind::Fixed(hidden_material_handle.clone())),
+                        },
                         Selector,
                     ))
                     .with_children(|commands| {
@@ -95,6 +104,7 @@ fn world_setup(
                                 ..default()
                             },
                             RaycastPickTarget::default(),
+                            Interaction::None,
                         ));
                     })
                     .id();
@@ -108,7 +118,6 @@ fn world_setup(
         mesh_handle,
         tile_material_handle,
         hidden_material_handle,
-        selector_material_handle,
     });
 }
 
@@ -125,6 +134,7 @@ enum HexEvent {
     Over(ListenedEvent<Over>),
     Out(ListenedEvent<Out>),
     Down(ListenedEvent<Down>),
+    Up(ListenedEvent<Up>),
 }
 
 impl From<ListenedEvent<Over>> for HexEvent {
@@ -142,52 +152,95 @@ impl From<ListenedEvent<Down>> for HexEvent {
         HexEvent::Down(event)
     }
 }
+impl From<ListenedEvent<Up>> for HexEvent {
+    fn from(event: ListenedEvent<Up>) -> Self {
+        HexEvent::Up(event)
+    }
+}
 
-fn handle_hex_event(
+fn handle_hex_event_update_parent(
+    mut commands: Commands,
+    mut events: EventReader<HexEvent>,
+    q_interaction: Query<&Interaction>,
+) {
+    fn update_parent_interaction<T: IsPointerEvent>(
+        commands: &mut Commands,
+        q_interaction: &Query<&Interaction>,
+        event: &ListenedEvent<T>,
+    ) {
+        if let Ok(interaction) = q_interaction.get(event.target) {
+            commands.entity(event.listener).insert(*interaction);
+        }
+    }
+
+    for event in events.iter() {
+        match event {
+            HexEvent::Over(event) => {
+                update_parent_interaction(&mut commands, &q_interaction, event);
+            }
+            HexEvent::Out(event) => {
+                update_parent_interaction(&mut commands, &q_interaction, event);
+            }
+            HexEvent::Down(event) => {
+                update_parent_interaction(&mut commands, &q_interaction, event);
+            }
+            HexEvent::Up(event) => {
+                update_parent_interaction(&mut commands, &q_interaction, event);
+            }
+        }
+    }
+}
+
+fn handle_hex_event_spawn_tile(
     mut commands: Commands,
     mut events: EventReader<HexEvent>,
     mut tracker: ResMut<WorldTracker>,
     mut q_transforms: Query<&mut Transform, With<Selector>>,
+    mouse: Res<Input<MouseButton>>,
 ) {
+    fn spawn_tile<T: IsPointerEvent>(
+        commands: &mut Commands,
+        tracker: &mut ResMut<WorldTracker>,
+        q_transforms: &mut Query<&mut Transform, With<Selector>>,
+        event: &ListenedEvent<T>,
+    ) {
+        commands
+            .entity(event.listener)
+            .insert(tracker.hidden_material_handle.clone());
+        let mut transform = q_transforms.get_mut(event.listener).unwrap();
+        let hex_coords = tracker.tiles.get(&event.listener).unwrap().clone();
+        let position = tracker.layout.hex_to_world_pos(hex_coords.hex);
+        let entity = commands
+            .spawn(PbrBundle {
+                transform: Transform::from_xyz(
+                    position.x,
+                    (hex_coords.layer as f32) * 0.5,
+                    position.y,
+                )
+                .with_scale(Vec3::new(1.0 - MARGIN, 1.0 - MARGIN, 1.0 - MARGIN)),
+                mesh: tracker.mesh_handle.clone(),
+                material: tracker.tile_material_handle.clone(),
+                ..default()
+            })
+            .id();
+        transform.translation.y += 0.5;
+        tracker.tiles.insert(entity, hex_coords);
+
+        let hex_coords = tracker.tiles.get_mut(&event.listener).unwrap();
+        hex_coords.layer += 1;
+    }
+
     for event in events.iter() {
         match event {
-            HexEvent::Over(event) => {
-                commands
-                    .entity(event.listener)
-                    .insert(tracker.selector_material_handle.clone());
-            }
-            HexEvent::Out(event) => {
-                commands
-                    .entity(event.listener)
-                    .insert(tracker.hidden_material_handle.clone());
-            }
             HexEvent::Down(event) => {
-                let mut transform = q_transforms.get_mut(event.listener).unwrap();
-                let hex_coords = tracker.tiles.get(&event.listener).unwrap().clone();
-                let position = tracker.layout.hex_to_world_pos(hex_coords.hex);
-                let entity = commands
-                    .spawn(PbrBundle {
-                        transform: Transform::from_xyz(
-                            position.x,
-                            (hex_coords.layer as f32) * 0.5,
-                            position.y,
-                        )
-                        .with_scale(Vec3::new(
-                            1.0 - MARGIN,
-                            1.0 - MARGIN,
-                            1.0 - MARGIN,
-                        )),
-                        mesh: tracker.mesh_handle.clone(),
-                        material: tracker.tile_material_handle.clone(),
-                        ..default()
-                    })
-                    .id();
-                transform.translation.y += 0.5;
-                tracker.tiles.insert(entity, hex_coords.clone());
-
-                let hex_coords = tracker.tiles.get_mut(&event.listener).unwrap();
-                hex_coords.layer += 1;
+                spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
             }
+            HexEvent::Over(event) => {
+                if mouse.pressed(MouseButton::Left) {
+                    spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
+                }
+            }
+            _ => {}
         }
     }
 }
