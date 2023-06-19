@@ -11,27 +11,26 @@ impl Plugin for UiPlugin {
 }
 
 fn ui_setup(mut commands: Commands, assets: Res<LoadedAssets>) {
-    commands.spawn(NodeBundle {
-        style: Style {
-            size: Size::width(Val::Percent(100.0)),
-            justify_content: JustifyContent::SpaceBetween,
-            padding: UiRect::all(Val::Percent(2.0)),
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                size: Size::width(Val::Percent(100.0)),
+                justify_content: JustifyContent::SpaceBetween,
+                padding: UiRect::all(Val::Percent(2.0)),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
-    .with_children(|parent| {
-        parent.spawn(
-            TextBundle::from_section(
+        })
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
                 "use arrow keys to orbit camera.\nclick to add tiles.",
                 TextStyle {
                     font: assets.font.clone(),
                     font_size: 20.,
                     color: Color::PURPLE,
                 },
-            ),
-        );
-    });
+            ));
+        });
 }
 
 fn ui_control(mut _commands: Commands) {

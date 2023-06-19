@@ -242,17 +242,17 @@ fn handle_hex_event_spawn_tile(
         match event {
             HexEvent::Down(event) => {
                 spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
-            },
+            }
             HexEvent::Over(event) => {
                 if mouse.pressed(MouseButton::Left) {
-                    if let Some(HexCoords { hex, .. }) = tracker.tiles.get(&event.listener)  {
+                    if let Some(HexCoords { hex, .. }) = tracker.tiles.get(&event.listener) {
                         if *hex != tracker.last_hex {
                             spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
                         }
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
