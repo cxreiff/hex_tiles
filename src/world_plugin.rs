@@ -12,7 +12,7 @@ use crate::GameState;
 pub static MAP_RADIUS: u32 = 4;
 pub static MARGIN: f32 = 0.05;
 
-#[derive(Clone, Constructor)]
+#[derive(Clone, Constructor, Default)]
 struct HexCoords {
     hex: Hex,
     layer: u32,
@@ -28,6 +28,7 @@ struct WorldTracker {
     mesh_handle: Handle<Mesh>,
     tile_material_handle: Handle<StandardMaterial>,
     hidden_material_handle: Handle<StandardMaterial>,
+    last_hex: Hex,
 }
 
 pub struct WorldPlugin;
@@ -118,6 +119,7 @@ fn world_setup(
         mesh_handle,
         tile_material_handle,
         hidden_material_handle,
+        last_hex: Hex::ZERO,
     });
 }
 
@@ -161,6 +163,7 @@ impl From<ListenedEvent<Up>> for HexEvent {
 fn handle_hex_event_update_parent(
     mut commands: Commands,
     mut events: EventReader<HexEvent>,
+    mouse: Res<Input<MouseButton>>,
     q_interaction: Query<&Interaction>,
 ) {
     fn update_parent_interaction<T: IsPointerEvent>(
@@ -176,10 +179,14 @@ fn handle_hex_event_update_parent(
     for event in events.iter() {
         match event {
             HexEvent::Over(event) => {
-                update_parent_interaction(&mut commands, &q_interaction, event);
+                if !mouse.pressed(MouseButton::Left) {
+                    update_parent_interaction(&mut commands, &q_interaction, event);
+                }
             }
             HexEvent::Out(event) => {
-                update_parent_interaction(&mut commands, &q_interaction, event);
+                if !mouse.pressed(MouseButton::Left) {
+                    update_parent_interaction(&mut commands, &q_interaction, event);
+                }
             }
             HexEvent::Down(event) => {
                 update_parent_interaction(&mut commands, &q_interaction, event);
@@ -195,8 +202,8 @@ fn handle_hex_event_spawn_tile(
     mut commands: Commands,
     mut events: EventReader<HexEvent>,
     mut tracker: ResMut<WorldTracker>,
-    mut q_transforms: Query<&mut Transform, With<Selector>>,
     mouse: Res<Input<MouseButton>>,
+    mut q_transforms: Query<&mut Transform, With<Selector>>,
 ) {
     fn spawn_tile<T: IsPointerEvent>(
         commands: &mut Commands,
@@ -224,6 +231,7 @@ fn handle_hex_event_spawn_tile(
             })
             .id();
         transform.translation.y += 0.5;
+        tracker.last_hex = hex_coords.hex;
         tracker.tiles.insert(entity, hex_coords);
 
         let hex_coords = tracker.tiles.get_mut(&event.listener).unwrap();
@@ -234,13 +242,17 @@ fn handle_hex_event_spawn_tile(
         match event {
             HexEvent::Down(event) => {
                 spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
-            }
+            },
             HexEvent::Over(event) => {
                 if mouse.pressed(MouseButton::Left) {
-                    spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
+                    if let Some(HexCoords { hex, .. }) = tracker.tiles.get(&event.listener)  {
+                        if *hex != tracker.last_hex {
+                            spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
+                        }
+                    }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

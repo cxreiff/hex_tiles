@@ -1,5 +1,5 @@
 ({
-    "textures.kitty": File (
-        path: "textures/kitty.png",
+    "fonts.hasklug": File (
+        path: "fonts/hasklug.otf",
     ),
 })

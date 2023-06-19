@@ -5,8 +5,8 @@ use crate::GameState;
 
 #[derive(AssetCollection, Resource)]
 pub struct LoadedAssets {
-    #[asset(key = "textures.kitty")]
-    pub kitty: Handle<Image>,
+    #[asset(key = "fonts.hasklug")]
+    pub font: Handle<Font>,
 }
 
 pub struct LoadingPlugin;
