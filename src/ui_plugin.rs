@@ -26,7 +26,7 @@ fn ui_setup(mut commands: Commands, assets: Res<LoadedAssets>) {
                 "use arrow keys to orbit camera.\nclick to add tiles.",
                 TextStyle {
                     font: assets.font.clone(),
-                    font_size: 20.,
+                    font_size: 18.,
                     color: Color::PURPLE,
                 },
             ));
