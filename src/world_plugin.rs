@@ -29,6 +29,7 @@ struct WorldTracker {
     tile_material_handle: Handle<StandardMaterial>,
     hidden_material_handle: Handle<StandardMaterial>,
     last_hex: Hex,
+    drag_layer: u32,
 }
 
 pub struct WorldPlugin;
@@ -40,6 +41,7 @@ impl Plugin for WorldPlugin {
             .add_systems(
                 (handle_hex_event_update_parent, handle_hex_event_spawn_tile)
                     .chain()
+                    .in_set(OnUpdate(GameState::Playing))
                     .distributive_run_if(on_event::<HexEvent>()),
             );
     }
@@ -120,6 +122,7 @@ fn world_setup(
         tile_material_handle,
         hidden_material_handle,
         last_hex: Hex::ZERO,
+        drag_layer: 0,
     });
 }
 
@@ -241,14 +244,18 @@ fn handle_hex_event_spawn_tile(
     for event in events.iter() {
         match event {
             HexEvent::Down(event) => {
-                spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
+                if let Some(HexCoords { layer, .. }) = tracker.tiles.get(&event.listener) {
+                    tracker.drag_layer = *layer;
+                    spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
+                }
             }
             HexEvent::Over(event) => {
-                if mouse.pressed(MouseButton::Left) {
-                    if let Some(HexCoords { hex, .. }) = tracker.tiles.get(&event.listener) {
-                        if *hex != tracker.last_hex {
-                            spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
-                        }
+                if let Some(HexCoords { hex, layer }) = tracker.tiles.get(&event.listener) {
+                    if mouse.pressed(MouseButton::Left)
+                        && *hex != tracker.last_hex
+                        && *layer <= tracker.drag_layer
+                    {
+                        spawn_tile(&mut commands, &mut tracker, &mut q_transforms, event);
                     }
                 }
             }
