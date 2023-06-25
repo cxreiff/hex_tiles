@@ -6,6 +6,8 @@ use bevy::utils::HashMap;
 use bevy_mod_picking::prelude::*;
 use derive_more::Constructor;
 use hexx::*;
+use strum::EnumIter;
+use strum::IntoEnumIterator;
 
 use crate::GameState;
 
@@ -22,11 +24,12 @@ struct HexCoords {
 struct Selector;
 
 #[derive(Resource, Default)]
-struct WorldTracker {
+pub struct WorldTracker {
+    pub current_tile_variant: TileVariant,
     layout: HexLayout,
     tiles: HashMap<Entity, HexCoords>,
+    tile_materials: HashMap<TileVariant, Handle<StandardMaterial>>,
     mesh_handle: Handle<Mesh>,
-    tile_material_handle: Handle<StandardMaterial>,
     hidden_material_handle: Handle<StandardMaterial>,
     last_hex: Hex,
     drag_layer: u32,
@@ -47,6 +50,24 @@ impl Plugin for WorldPlugin {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Default, EnumIter, Component)]
+pub enum TileVariant {
+    Cyan,
+    #[default]
+    Purple,
+    Orange,
+}
+
+impl From<TileVariant> for Color {
+    fn from(value: TileVariant) -> Self {
+        match value {
+            TileVariant::Cyan => Color::TEAL,
+            TileVariant::Purple => Color::PURPLE,
+            TileVariant::Orange => Color::ORANGE,
+        }
+    }
+}
+
 fn world_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -58,10 +79,18 @@ fn world_setup(
     };
 
     let mesh_handle = meshes.add(compute_mesh(ColumnMeshBuilder::new(&layout, 0.5).build()));
-    let tile_material_handle = materials.add(Color::rgb(0.66, 0.53, 0.66).into());
     let empty_tile_material_handle = materials.add(Color::GRAY.with_a(0.5).into());
     let hidden_material_handle = materials.add(Color::RED.with_a(0.0).into());
-    let selector_material_handle = materials.add(Color::rgb(0.66, 0.53, 0.66).with_a(0.3).into());
+    let selector_material_handle = materials.add(Color::rgb(0.66, 0.66, 0.66).with_a(0.3).into());
+
+    let tile_materials = TileVariant::iter()
+        .map(|tile_variant| {
+            (
+                tile_variant.clone(),
+                materials.add(Color::from(tile_variant).into()),
+            )
+        })
+        .collect();
 
     let tiles =
         shapes::hexagon(Hex::ZERO, MAP_RADIUS)
@@ -116,10 +145,11 @@ fn world_setup(
             .collect();
 
     commands.insert_resource(WorldTracker {
+        current_tile_variant: TileVariant::Purple,
         layout,
         tiles,
+        tile_materials,
         mesh_handle,
-        tile_material_handle,
         hidden_material_handle,
         last_hex: Hex::ZERO,
         drag_layer: 0,
@@ -229,7 +259,11 @@ fn handle_hex_event_spawn_tile(
                 )
                 .with_scale(Vec3::new(1.0 - MARGIN, 1.0 - MARGIN, 1.0 - MARGIN)),
                 mesh: tracker.mesh_handle.clone(),
-                material: tracker.tile_material_handle.clone(),
+                material: tracker
+                    .tile_materials
+                    .get(&tracker.current_tile_variant)
+                    .unwrap()
+                    .clone(),
                 ..default()
             })
             .id();

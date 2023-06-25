@@ -30,7 +30,7 @@ fn camera_setup(mut commands: Commands) {
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 10.0, 12.0).looking_at(FOCUS, Vec3::Y),
             projection: Projection::Orthographic(OrthographicProjection {
-                scale: 5.8,
+                scale: 6.0,
                 scaling_mode: ScalingMode::FixedVertical(2.),
                 ..default()
             }),
