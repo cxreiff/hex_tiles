@@ -42,6 +42,7 @@ hexx = "0.7.0"
 derive_more = { version = "0.99.17", default-features = false, features = [
   "constructor",
 ] }
+strum = { version = "0.25", features = ["derive"] }
 
 [build-dependencies]
 embed-resource = "1.4"
