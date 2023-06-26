@@ -1,20 +1,11 @@
-use crate::{
-    loading_plugin::LoadedAssets,
-    world_plugin::{TileVariant, WorldTracker},
-    GameState,
-};
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use strum::IntoEnumIterator;
 
-pub struct UiPlugin;
-impl Plugin for UiPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system(ui_setup.in_schedule(OnEnter(GameState::Playing)))
-            .add_system(palette_system.in_set(OnUpdate(GameState::Playing)));
-    }
-}
+use crate::grid_plugin::TileVariant;
+use crate::loading_plugin::LoadedAssets;
 
-fn ui_setup(mut commands: Commands, assets: Res<LoadedAssets>) {
+pub fn setup(mut commands: Commands, assets: Res<LoadedAssets>) {
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -71,7 +62,7 @@ fn ui_setup(mut commands: Commands, assets: Res<LoadedAssets>) {
                                 .with_children(|parent| {
                                     parent.spawn(
                                         TextBundle::from_section(
-                                            "arrow keys to orbit camera.\nleft lick to add tiles.",
+                                            "arrow keys to orbit camera.\nleft click to add tiles.",
                                             TextStyle {
                                                 font: assets.font.clone(),
                                                 font_size: 18.,
@@ -114,52 +105,4 @@ fn ui_setup(mut commands: Commands, assets: Res<LoadedAssets>) {
                     })
                 });
         });
-}
-
-fn palette_system(
-    mut interactions: Query<
-        (&Interaction, &TileVariant, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-    mut world_tracker: ResMut<WorldTracker>,
-) {
-    for (interaction, tile_variant, mut background_color) in &mut interactions {
-        match *interaction {
-            Interaction::Clicked => {
-                world_tracker.current_tile_variant = tile_variant.clone();
-            }
-            Interaction::Hovered => {
-                if let Color::Hsla {
-                    hue,
-                    saturation,
-                    lightness,
-                    alpha,
-                } = Color::from(tile_variant.clone()).as_hsla()
-                {
-                    background_color.0 = Color::Hsla {
-                        hue,
-                        saturation,
-                        lightness: lightness + 0.05,
-                        alpha,
-                    };
-                };
-            }
-            Interaction::None => {
-                if let Color::Hsla {
-                    hue,
-                    saturation,
-                    lightness,
-                    alpha,
-                } = Color::from(tile_variant.clone()).as_hsla()
-                {
-                    background_color.0 = Color::Hsla {
-                        hue,
-                        saturation,
-                        lightness: lightness - 0.05,
-                        alpha,
-                    };
-                };
-            }
-        }
-    }
 }
